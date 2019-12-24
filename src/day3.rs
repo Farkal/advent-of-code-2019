@@ -42,28 +42,28 @@ impl Wire {
     fn execute_direction(&mut self, direction: &str) {
         let (d, steps) = (&direction[0..1], direction[1..].parse::<u32>().unwrap());
         let mut new_pos: Vec<Position> = match d {
-            "R" => (0..steps + 1)
+            "R" => (0..=steps)
                 .map(|s| Position {
                     x: self.pos.x + s as i64,
                     y: self.pos.y,
                     steps: self.pos.steps + u64::from(s),
                 })
                 .collect(),
-            "L" => (0..steps + 1)
+            "L" => (0..=steps)
                 .map(|s| Position {
                     x: self.pos.x - s as i64,
                     y: self.pos.y,
                     steps: self.pos.steps + u64::from(s),
                 })
                 .collect(),
-            "U" => (0..steps + 1)
+            "U" => (0..=steps)
                 .map(|s| Position {
                     x: self.pos.x,
                     y: self.pos.y + s as i64,
                     steps: self.pos.steps + u64::from(s),
                 })
                 .collect(),
-            "D" => (0..steps + 1)
+            "D" => (0..=steps)
                 .map(|s| Position {
                     x: self.pos.x,
                     y: self.pos.y - s as i64,
@@ -73,7 +73,7 @@ impl Wire {
             _ => panic!("Unknown direction value {}", d),
         };
         // println!("PRV POS {:?} DIR {} NEW POS {:?}", self.pos, direction, new_pos.last().unwrap().clone());
-        self.pos = new_pos.last().unwrap().clone();
+        self.pos = *new_pos.last().unwrap();
         self.positions.append(&mut new_pos)
     }
 
@@ -115,7 +115,7 @@ fn get_smallest_steps(coordinates: Vec<(Position, Position)>) -> u32 {
 }
 
 #[aoc(day3, part1)]
-pub fn part1(input: &Vec<Vec<String>>) -> u32 {
+pub fn part1(input: &[Vec<String>]) -> u32 {
     let wire1 = Wire::new(input[0].clone());
     let wire2 = Wire::new(input[1].clone());
     let same_coord = get_same_coordinates(wire1, wire2);
@@ -123,7 +123,7 @@ pub fn part1(input: &Vec<Vec<String>>) -> u32 {
 }
 
 #[aoc(day3, part2)]
-pub fn part2(input: &Vec<Vec<String>>) -> u32 {
+pub fn part2(input: &[Vec<String>]) -> u32 {
     let wire1 = Wire::new(input[0].clone());
     let wire2 = Wire::new(input[1].clone());
     let same_coord = get_same_coordinates(wire1, wire2);

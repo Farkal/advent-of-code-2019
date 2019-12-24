@@ -3,14 +3,14 @@ fn number_to_vec(n: u32) -> Vec<u32> {
     let mut n = n;
     while n > 9 {
         digits.push(n % 10);
-        n = n / 10;
+        n /= 10;
     }
     digits.push(n);
     digits.reverse();
     digits
 }
 
-fn check_digit_increase(digits: &Vec<u32>) -> bool {
+fn check_digit_increase(digits: &[u32]) -> bool {
     for i in 0..digits.len() - 1 {
         if digits[i] > digits[i + 1] {
             return false;
@@ -19,7 +19,7 @@ fn check_digit_increase(digits: &Vec<u32>) -> bool {
     true
 }
 
-fn check_digit_double(digits: &Vec<u32>) -> bool {
+fn check_digit_double(digits: &[u32]) -> bool {
     for i in 0..digits.len() - 1 {
         if digits[i] == digits[i + 1] {
             return true;
@@ -28,17 +28,17 @@ fn check_digit_double(digits: &Vec<u32>) -> bool {
     false
 }
 
-fn check_digit_double_strict(digits: &Vec<u32>) -> bool {
+fn check_digit_double_strict(digits: &[u32]) -> bool {
     let mut last_value = digits[0];
     let mut count_value = 1;
-    for i in 1..digits.len() {
-        if last_value == digits[i] {
+    for d in digits.iter().skip(1) {
+        if &last_value == d {
             count_value += 1
         } else if count_value == 2 {
             return true;
         } else {
             count_value = 1;
-            last_value = digits[i]
+            last_value = *d
         }
     }
     count_value == 2
@@ -57,11 +57,11 @@ fn check_password_strict(n: u32) -> bool {
 #[aoc(day4, part1)]
 pub fn part1(range: &str) -> usize {
     let range: Vec<u32> = range
-        .split("-")
+        .split('-')
         .map(|x| x.parse::<u32>().unwrap())
         .collect();
     let mut passwords = vec![];
-    for n in range[0]..range[1] + 1 {
+    for n in range[0]..=range[1] {
         if check_password(n) {
             passwords.push(n)
         }
@@ -72,11 +72,11 @@ pub fn part1(range: &str) -> usize {
 #[aoc(day4, part2)]
 pub fn part2(range: &str) -> usize {
     let range: Vec<u32> = range
-        .split("-")
+        .split('-')
         .map(|x| x.parse::<u32>().unwrap())
         .collect();
     let mut passwords = vec![];
-    for n in range[0]..range[1] + 1 {
+    for n in range[0]..=range[1] {
         if check_password_strict(n) {
             passwords.push(n)
         }

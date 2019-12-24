@@ -28,8 +28,7 @@ fn intcode_compute(mut input: Vec<u32>) -> Vec<u32> {
 pub fn part1(input: &[u32]) -> String {
     let res = intcode_compute(input.to_vec());
     let res: Vec<String> = res.iter().map(|x| x.to_string()).collect();
-    let res = res.join(",");
-    res
+    res.join(",")
 }
 
 #[aoc(day2, part2)]
@@ -41,12 +40,12 @@ pub fn part2(input: &[u32]) -> u32 {
             fresh_input[1] = noun;
             fresh_input[2] = verb;
             let res = intcode_compute(fresh_input);
-            if res[0] == 19690720 {
+            if res[0] == 19_690_720 {
                 return 100 * noun + verb;
             }
         }
     }
-    return 0;
+    0
 }
 
 #[cfg(test)]

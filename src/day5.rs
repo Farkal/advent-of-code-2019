@@ -12,7 +12,7 @@ struct IntCode {
     index: usize,
     content: Vec<i32>,
     manual_input: Option<Vec<i32>>,
-    output: Vec<i32>
+    output: Vec<i32>,
 }
 
 #[derive(Copy, Clone, PartialEq, Debug)]
@@ -231,7 +231,7 @@ pub fn part1(input: &[i32]) -> String {
         index: 0,
         content: input.to_vec(),
         manual_input: None,
-        output: vec![]
+        output: vec![],
     };
     let res = i.execute();
     let res: Vec<String> = res.iter().map(|x| x.to_string()).collect();
@@ -244,7 +244,7 @@ pub fn part2(input: &[i32]) -> String {
         index: 0,
         content: input.to_vec(),
         manual_input: None,
-        output: vec![]
+        output: vec![],
     };
     let res = i.execute();
     let res: Vec<String> = res.iter().map(|x| x.to_string()).collect();
@@ -281,7 +281,7 @@ pub mod tests {
             index: 0,
             content: input.to_vec(),
             manual_input,
-            output: vec![]
+            output: vec![],
         };
         i.execute();
         i.output
