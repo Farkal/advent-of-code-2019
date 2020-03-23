@@ -26,11 +26,10 @@ pub fn input_generator(input: &str) -> Vec<Orbit> {
 }
 
 fn steps(g: &HashMap<String, Vec<String>>, node: &str, rec: usize) -> usize {
-    let res = match g.get(node) {
+    match g.get(node) {
         Some(v) => v.len() * rec + v.iter().map(|k| steps(g, k, rec + 1)).sum::<usize>(),
         None => 0,
-    };
-    res
+    }
 }
 
 fn find_neighbors<'a>(node: &str, input: &'a [Orbit]) -> HashSet<&'a String> {
@@ -84,10 +83,8 @@ pub fn part1(input: &[Orbit]) -> usize {
         })
         .collect();
 
-
-    let r = steps(&g, "COM", 1);
+    steps(&g, "COM", 1)
     // println!("Final result {}", r);
-    r
 }
 
 #[aoc(day6, part2)]

@@ -90,15 +90,15 @@ mod tests {
 
     #[test]
     fn test_part1() {
-        assert_eq!(check_password(111111), true);
-        assert_eq!(check_password(223450), false);
-        assert_eq!(check_password(123789), false);
+        assert_eq!(check_password(11_1111), true);
+        assert_eq!(check_password(22_3450), false);
+        assert_eq!(check_password(12_3789), false);
     }
 
     #[test]
     fn test_part2() {
-        assert_eq!(check_password_strict(112233), true);
-        assert_eq!(check_password_strict(123444), false);
-        assert_eq!(check_password_strict(111122), true);
+        assert_eq!(check_password_strict(11_2233), true);
+        assert_eq!(check_password_strict(12_3444), false);
+        assert_eq!(check_password_strict(11_1122), true);
     }
 }

@@ -40,13 +40,13 @@ pub mod tests {
         assert_eq!(compute_mass(12), 2);
         assert_eq!(compute_mass(14), 2);
         assert_eq!(compute_mass(1969), 654);
-        assert_eq!(compute_mass(100756), 33583);
+        assert_eq!(compute_mass(10_0756), 33583);
     }
 
     #[test]
     fn test_part2() {
         assert_eq!(compute_total_mass(14), 2);
         assert_eq!(compute_total_mass(1969), 966);
-        assert_eq!(compute_total_mass(100756), 50346);
+        assert_eq!(compute_total_mass(10_0756), 50346);
     }
 }
