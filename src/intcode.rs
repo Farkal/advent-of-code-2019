@@ -1,9 +1,18 @@
-use std::io::{stdin, stdout, Write};
+// use std::io::{stdin, stdout, Write};
 
+#[derive(Debug)]
+pub enum ExitCode {
+    Output(i32),
+    Stop,
+    AwaitInput,
+    UnknowCode,
+}
+
+#[derive(Debug, Clone)]
 pub struct IntCode {
     pub index: usize,
     pub content: Vec<i32>,
-    pub manual_input: Option<Vec<i32>>,
+    pub manual_input: Vec<i32>,
     pub manual_input_index: usize,
     pub output: Vec<i32>,
 }
@@ -68,6 +77,7 @@ fn parse_parameter(p: i32) -> Operation {
     let p1type = p[2..3].parse::<i32>().unwrap();
     let o = p[3..5].parse::<i32>().unwrap();
     // println!("{} {} {} {}", o, p1type, p2type, p3type);
+    // println!("Opération is {:?}", OperationType::from_int(o));
     Operation {
         mode: OperationType::from_int(o),
         params_mode: vec![
@@ -79,7 +89,7 @@ fn parse_parameter(p: i32) -> Operation {
 }
 
 impl IntCode {
-    pub fn new(input: Vec<i32>, manual_input: Option<Vec<i32>>) -> Self {
+    pub fn new(input: Vec<i32>, manual_input: Vec<i32>) -> Self {
         IntCode {
             index: 0,
             content: input,
@@ -88,13 +98,21 @@ impl IntCode {
             output: vec![],
         }
     }
-    pub fn execute(&mut self) -> Vec<i32> {
-        while self.execute_operation() {}
-        self.content.clone()
+    pub fn execute(&mut self) -> ExitCode {
+        loop {
+            if let Err(e) = self.execute_operation() {
+                return e;
+            }
+        }
     }
 
-    fn execute_operation(&mut self) -> bool {
-        // println!("{} - OP {} {:?}", self.index, self.content[self.index], &self.content[..]);
+    fn execute_operation(&mut self) -> Result<bool, ExitCode> {
+        // println!(
+        //     "{} - OP {} {:?}",
+        //     self.index,
+        //     self.content[self.index],
+        //     &self.content[..]
+        // );
         let o_mode = OperationType::from_int(self.content[self.index]);
         let o = if OperationType::Unknown == o_mode {
             parse_parameter(self.content[self.index])
@@ -104,10 +122,11 @@ impl IntCode {
                 params_mode: vec![ParamMode::Position; 3],
             }
         };
+        // println!("EXECUTING OP {:?}", o);
         self.run_operation(o)
     }
 
-    fn run_operation(&mut self, o: Operation) -> bool {
+    fn run_operation(&mut self, o: Operation) -> Result<bool, ExitCode> {
         // println!("{:?}", o);
         match o.mode {
             OperationType::Add => {
@@ -117,7 +136,7 @@ impl IntCode {
                 let i = self.content[self.index + 3] as usize;
                 self.write_result_to_addr(i, val1 + val2);
                 self.index += 4;
-                true
+                Ok(true)
             }
             OperationType::Mult => {
                 let val1 = self.get_param(1, o.params_mode[0]);
@@ -126,19 +145,19 @@ impl IntCode {
                 let i = self.content[self.index + 3] as usize;
                 self.write_result_to_addr(i, val1 * val2);
                 self.index += 4;
-                true
+                Ok(true)
             }
             OperationType::Input => {
                 let a = self.content[self.index + 1] as usize;
-                self.get_input(a);
+                self.get_input(a)?;
                 self.index += 2;
-                true
+                Ok(true)
             }
             OperationType::Output => {
                 let val1 = self.get_param(1, o.params_mode[0]);
                 self.display_value(val1);
                 self.index += 2;
-                true
+                Err(ExitCode::Output(val1))
             }
             OperationType::JumpTrue => {
                 let val1 = self.get_param(1, o.params_mode[0]);
@@ -149,7 +168,7 @@ impl IntCode {
                 } else {
                     self.index += 3;
                 }
-                true
+                Ok(true)
             }
             OperationType::JumpFalse => {
                 let val1 = self.get_param(1, o.params_mode[0]);
@@ -159,7 +178,7 @@ impl IntCode {
                 } else {
                     self.index += 3;
                 }
-                true
+                Ok(true)
             }
             OperationType::LessThan => {
                 let val1 = self.get_param(1, o.params_mode[0]);
@@ -167,7 +186,7 @@ impl IntCode {
                 let val3 = self.get_param(3, ParamMode::Immediate);
                 self.content[val3 as usize] = (val1 < val2) as i32;
                 self.index += 4;
-                true
+                Ok(true)
             }
             OperationType::Equals => {
                 let val1 = self.get_param(1, o.params_mode[0]);
@@ -176,12 +195,12 @@ impl IntCode {
                 // println!("{} == {} -> {} {} {:?}", val1, val2, val3, self.content[self.index + 3], o.params_mode[2]);
                 self.content[val3 as usize] = (val1 == val2) as i32;
                 self.index += 4;
-                true
+                Ok(true)
             }
-            OperationType::Stop => false,
+            OperationType::Stop => Err(ExitCode::Stop),
             _ => {
                 println!("Unknown op code");
-                false
+                Err(ExitCode::UnknowCode)
             }
         }
     }
@@ -198,28 +217,36 @@ impl IntCode {
         self.content[i] = val;
     }
 
-    fn get_input(&mut self, address: usize) {
-        if let Some(m_i) = self.manual_input.clone() {
-            let input = m_i[self.manual_input_index];
-            // println!("INPUT = {}", input);
-            self.write_result_to_addr(address, input);
-            self.manual_input_index += 1;
-        } else {
-            let mut s = String::new();
-            print!("Please enter some text: ");
-            let _ = stdout().flush();
-            stdin()
-                .read_line(&mut s)
-                .expect("Did not enter a correct string");
-            if let Some('\n') = s.chars().next_back() {
-                s.pop();
-            }
-            if let Some('\r') = s.chars().next_back() {
-                s.pop();
-            }
-            println!("You typed: {}", s);
-            self.write_result_to_addr(address, s.parse::<i32>().unwrap())
+    pub fn push_input(&mut self, input: i32) {
+        self.manual_input.push(input)
+    }
+
+    fn get_input(&mut self, address: usize) -> Result<(), ExitCode> {
+        // println!("Get inputs");
+        if self.manual_input_index >= self.manual_input.len() {
+            return Err(ExitCode::AwaitInput);
         }
+        let input = self.manual_input[self.manual_input_index];
+        // println!("INPUT = {}", input);
+        self.write_result_to_addr(address, input);
+        self.manual_input_index += 1;
+        // } else {
+        //     let mut s = String::new();
+        //     print!("Please enter some text: ");
+        //     let _ = stdout().flush();
+        //     stdin()
+        //         .read_line(&mut s)
+        //         .expect("Did not enter a correct string");
+        //     if let Some('\n') = s.chars().next_back() {
+        //         s.pop();
+        //     }
+        //     if let Some('\r') = s.chars().next_back() {
+        //         s.pop();
+        //     }
+        //     println!("You typed: {}", s);
+        //     self.write_result_to_addr(address, s.parse::<i32>().unwrap())
+        // }
+        Ok(())
     }
 
     fn display_value(&mut self, val: i32) {
