@@ -1,8 +1,8 @@
 // use std::io::{stdin, stdout, Write};
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum ExitCode {
-    Output(i32),
+    Output(i64),
     Stop,
     AwaitInput,
     UnknowCode,
@@ -11,23 +11,26 @@ pub enum ExitCode {
 #[derive(Debug, Clone)]
 pub struct IntCode {
     pub index: usize,
-    pub content: Vec<i32>,
-    pub manual_input: Vec<i32>,
+    pub content: Vec<i64>,
+    pub manual_input: Vec<i64>,
     pub manual_input_index: usize,
-    pub output: Vec<i32>,
+    pub output: Vec<i64>,
+    pub relative_base: i64,
 }
 
 #[derive(Copy, Clone, PartialEq, Debug)]
 enum ParamMode {
     Position,
     Immediate,
+    Relative,
 }
 
 impl ParamMode {
-    fn from_int(m: i32) -> ParamMode {
+    fn from_int(m: i64) -> ParamMode {
         match m {
             0 => ParamMode::Position,
             1 => ParamMode::Immediate,
+            2 => ParamMode::Relative,
             _ => panic!("Unknow param mode"),
         }
     }
@@ -43,12 +46,13 @@ enum OperationType {
     JumpFalse,
     LessThan,
     Equals,
+    AddToRelative,
     Stop,
     Unknown,
 }
 
 impl OperationType {
-    fn from_int(o: i32) -> OperationType {
+    fn from_int(o: i64) -> OperationType {
         match o {
             99 => OperationType::Stop,
             1 => OperationType::Add,
@@ -59,6 +63,7 @@ impl OperationType {
             6 => OperationType::JumpFalse,
             7 => OperationType::LessThan,
             8 => OperationType::Equals,
+            9 => OperationType::AddToRelative,
             _ => OperationType::Unknown,
         }
     }
@@ -70,12 +75,12 @@ struct Operation {
     params_mode: Vec<ParamMode>,
 }
 
-fn parse_parameter(p: i32) -> Operation {
+fn parse_parameter(p: i64) -> Operation {
     let p = &format!("{:05}", p)[..];
-    let p3type = p[..1].parse::<i32>().unwrap();
-    let p2type = p[1..2].parse::<i32>().unwrap();
-    let p1type = p[2..3].parse::<i32>().unwrap();
-    let o = p[3..5].parse::<i32>().unwrap();
+    let p3type = p[..1].parse::<i64>().unwrap();
+    let p2type = p[1..2].parse::<i64>().unwrap();
+    let p1type = p[2..3].parse::<i64>().unwrap();
+    let o = p[3..5].parse::<i64>().unwrap();
     // println!("{} {} {} {}", o, p1type, p2type, p3type);
     // println!("Opération is {:?}", OperationType::from_int(o));
     Operation {
@@ -89,13 +94,14 @@ fn parse_parameter(p: i32) -> Operation {
 }
 
 impl IntCode {
-    pub fn new(input: Vec<i32>, manual_input: Vec<i32>) -> Self {
+    pub fn new(input: Vec<i64>, manual_input: Vec<i64>) -> Self {
         IntCode {
             index: 0,
             content: input,
             manual_input,
             manual_input_index: 0,
             output: vec![],
+            relative_base: 0,
         }
     }
     pub fn execute(&mut self) -> ExitCode {
@@ -108,10 +114,12 @@ impl IntCode {
 
     fn execute_operation(&mut self) -> Result<bool, ExitCode> {
         // println!(
-        //     "{} - OP {} {:?}",
+        //     "{} - OP {} {:?} {}",
         //     self.index,
         //     self.content[self.index],
-        //     &self.content[..]
+        //     self.manual_input,
+        //     self.manual_input_index
+        //     // &self.content[..]
         // );
         let o_mode = OperationType::from_int(self.content[self.index]);
         let o = if OperationType::Unknown == o_mode {
@@ -133,8 +141,8 @@ impl IntCode {
                 let val1 = self.get_param(1, o.params_mode[0]);
                 let val2 = self.get_param(2, o.params_mode[1]);
                 // println!("{} + {}", val1, val2);
-                let i = self.content[self.index + 3] as usize;
-                self.write_result_to_addr(i, val1 + val2);
+                let i = self.get_addr(3, o.params_mode[2]);
+                self.write_result_to_addr(i as usize, val1 + val2);
                 self.index += 4;
                 Ok(true)
             }
@@ -142,14 +150,15 @@ impl IntCode {
                 let val1 = self.get_param(1, o.params_mode[0]);
                 let val2 = self.get_param(2, o.params_mode[1]);
                 // println!("{} * {}", val1, val2);
-                let i = self.content[self.index + 3] as usize;
-                self.write_result_to_addr(i, val1 * val2);
+                let i = self.get_addr(3, o.params_mode[2]);
+                self.write_result_to_addr(i as usize, val1 * val2);
                 self.index += 4;
                 Ok(true)
             }
             OperationType::Input => {
-                let a = self.content[self.index + 1] as usize;
-                self.get_input(a)?;
+                // println!("INPUT {:?} {}", o, self.content[self.index + 1]);
+                let a = self.get_addr(1, o.params_mode[0]);
+                self.get_input(a as usize)?;
                 self.index += 2;
                 Ok(true)
             }
@@ -183,18 +192,24 @@ impl IntCode {
             OperationType::LessThan => {
                 let val1 = self.get_param(1, o.params_mode[0]);
                 let val2 = self.get_param(2, o.params_mode[1]);
-                let val3 = self.get_param(3, ParamMode::Immediate);
-                self.content[val3 as usize] = (val1 < val2) as i32;
+                let addr = self.get_addr(3, o.params_mode[2]);
+                self.write_result_to_addr(addr as usize, (val1 < val2) as i64);
                 self.index += 4;
                 Ok(true)
             }
             OperationType::Equals => {
                 let val1 = self.get_param(1, o.params_mode[0]);
                 let val2 = self.get_param(2, o.params_mode[1]);
-                let val3 = self.get_param(3, ParamMode::Immediate);
-                // println!("{} == {} -> {} {} {:?}", val1, val2, val3, self.content[self.index + 3], o.params_mode[2]);
-                self.content[val3 as usize] = (val1 == val2) as i32;
+                let addr = self.get_addr(3, o.params_mode[2]);
+                // println!("{} == {} -> {} {} {:?}", val1, val2, addr, self.content[self.index + 3], o.params_mode[2]);
+                self.write_result_to_addr(addr as usize, (val1 == val2) as i64);
                 self.index += 4;
+                Ok(true)
+            }
+            OperationType::AddToRelative => {
+                let val1 = self.get_param(1, o.params_mode[0]);
+                self.relative_base += val1;
+                self.index += 2;
                 Ok(true)
             }
             OperationType::Stop => Err(ExitCode::Stop),
@@ -205,19 +220,43 @@ impl IntCode {
         }
     }
 
-    fn get_param(&self, i: usize, mode: ParamMode) -> i32 {
+    fn get_param(&self, i: usize, mode: ParamMode) -> i64 {
+        // println!("Get param {} by {:?}", self.index + i, mode);
         let mut val = self.content[self.index + i];
+        // println!("VALUE {}", val);
         if mode == ParamMode::Position {
-            val = self.content[val as usize]
+            val = if val >= self.content.len() as i64 {
+                0
+            } else {
+                self.content[val as usize]
+            }
+        } else if mode == ParamMode::Relative {
+            let index = self.relative_base + val;
+            val = if index >= self.content.len() as i64 {
+                0
+            } else {
+                self.content[index as usize]
+            }
         }
         val
     }
 
-    fn write_result_to_addr(&mut self, i: usize, val: i32) {
+    fn get_addr(&self, i: usize, mode: ParamMode) -> i64 {
+        // println!("Get addr {} by {:?}", self.index + i, mode);
+        match mode {
+            ParamMode::Position | ParamMode::Immediate => self.content[self.index + i],
+            ParamMode::Relative => self.content[self.index + i] + self.relative_base,
+        }
+    }
+
+    fn write_result_to_addr(&mut self, i: usize, val: i64) {
+        if i >= self.content.len() {
+            self.content.resize(i + 1, 0);
+        }
         self.content[i] = val;
     }
 
-    pub fn push_input(&mut self, input: i32) {
+    pub fn push_input(&mut self, input: i64) {
         self.manual_input.push(input)
     }
 
@@ -249,9 +288,9 @@ impl IntCode {
         Ok(())
     }
 
-    fn display_value(&mut self, val: i32) {
+    fn display_value(&mut self, val: i64) {
         // Display content at the address of index + 1
-        // println!("DISPLAYING {}", val);
+        println!("DISPLAYING {}", val);
         self.output.push(val);
     }
 }

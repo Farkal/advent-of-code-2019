@@ -1,15 +1,15 @@
 use super::intcode::IntCode;
 
 #[aoc_generator(day5)]
-pub fn input_generator(input: &str) -> Vec<i32> {
+pub fn input_generator(input: &str) -> Vec<i64> {
     input
         .split(',')
-        .map(|x| x.parse::<i32>().unwrap())
+        .map(|x| x.parse::<i64>().unwrap())
         .collect()
 }
 
 #[aoc(day5, part1)]
-pub fn part1(input: &[i32]) -> String {
+pub fn part1(input: &[i64]) -> String {
     let mut i = IntCode::new(input.to_vec(), vec![]);
     i.execute();
     let res = i.content;
@@ -18,7 +18,7 @@ pub fn part1(input: &[i32]) -> String {
 }
 
 #[aoc(day5, part2)]
-pub fn part2(input: &[i32]) -> String {
+pub fn part2(input: &[i64]) -> String {
     let mut i = IntCode::new(input.to_vec(), vec![]);
     i.execute();
     let res = i.content;
@@ -50,7 +50,7 @@ pub mod tests {
         );
     }
 
-    fn prepare_test(input: &str, manual_input: Vec<i32>) -> Vec<i32> {
+    fn prepare_test(input: &str, manual_input: Vec<i64>) -> Vec<i64> {
         let input = &input_generator(input);
         let mut i = IntCode::new(input.to_vec(), manual_input);
         i.execute();

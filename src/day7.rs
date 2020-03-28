@@ -2,14 +2,14 @@ use super::intcode::{ExitCode, IntCode};
 use itertools::Itertools;
 
 #[aoc_generator(day7)]
-pub fn input_generator(input: &str) -> Vec<i32> {
+pub fn input_generator(input: &str) -> Vec<i64> {
     input
         .split(',')
-        .map(|x| x.parse::<i32>().unwrap())
+        .map(|x| x.parse::<i64>().unwrap())
         .collect()
 }
 
-fn try_sequence(sequence: Vec<&i32>, input: &[i32]) -> i32 {
+fn try_sequence(sequence: Vec<&i64>, input: &[i64]) -> i64 {
     let mut last_input = 0;
     for i in sequence {
         let mut amp = IntCode::new(input.to_vec(), vec![*i, last_input]);
@@ -20,7 +20,7 @@ fn try_sequence(sequence: Vec<&i32>, input: &[i32]) -> i32 {
     // println!("RES IS {}", last_input);
     last_input
 }
-fn try_sequence_until_halt(sequence: Vec<&i32>, input: &[i32]) -> i32 {
+fn try_sequence_until_halt(sequence: Vec<&i64>, input: &[i64]) -> i64 {
     let mut last_input = 0;
     let mut amps = vec![IntCode::new(input.to_vec(), vec![]); 5];
     for i in 0..5 {
@@ -37,12 +37,12 @@ fn try_sequence_until_halt(sequence: Vec<&i32>, input: &[i32]) -> i32 {
     unreachable!()
 }
 
-fn find_max_sequence(input: &[i32]) -> i32 {
+fn find_max_sequence(input: &[i64]) -> i64 {
     let sequences = [0, 1, 2, 3, 4].iter().permutations(5);
     sequences.map(|s| try_sequence(s, input)).max().unwrap()
 }
 
-fn find_max_sequence_part2(input: &[i32]) -> i32 {
+fn find_max_sequence_part2(input: &[i64]) -> i64 {
     let sequences = [5, 6, 7, 8, 9].iter().permutations(5);
     sequences
         .map(|s| try_sequence_until_halt(s, input))
@@ -51,12 +51,12 @@ fn find_max_sequence_part2(input: &[i32]) -> i32 {
 }
 
 #[aoc(day7, part1)]
-fn part1(input: &[i32]) -> i32 {
+fn part1(input: &[i64]) -> i64 {
     find_max_sequence(input)
 }
 
 #[aoc(day7, part2)]
-fn part2(input: &[i32]) -> i32 {
+fn part2(input: &[i64]) -> i64 {
     find_max_sequence_part2(input)
 }
 
