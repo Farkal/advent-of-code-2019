@@ -11,3 +11,4 @@ bench = false
 aoc-runner = "*"
 aoc-runner-derive = "*"
 itertools = "0.9"
+num = "0.2"
