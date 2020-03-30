@@ -290,7 +290,7 @@ impl IntCode {
 
     fn display_value(&mut self, val: i64) {
         // Display content at the address of index + 1
-        println!("DISPLAYING {}", val);
+        // println!("DISPLAYING {}", val);
         self.output.push(val);
     }
 }
